@@ -5,7 +5,9 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node front-app/webpack-config/build.js"
+    "build": "node front-app/webpack-config/build.js",
+    "start":"node app.js",
+    "dev":"node app.js"
   },
   "keywords": [],
   "author": "",
