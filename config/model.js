@@ -6,6 +6,8 @@ var config = require('./config')
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize('dongnao_liaotian', config.username,config.password);
 
+var redis = require('redis').createClient();
+
 const User = sequelize.define('user', {
     username: Sequelize.STRING,
     nickname:Sequelize.STRING,
@@ -67,6 +69,7 @@ module.exports = {
     Reply,
     Relation,
     Request,
-    connect:sequelize
+    connect:sequelize,
+    redis
 }
 

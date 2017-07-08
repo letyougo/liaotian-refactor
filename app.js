@@ -5,77 +5,134 @@
 var express = require('express')
 var app = express()
 var cors = require('cors')
-var bodyParser =require('body-parser')
+var bodyParser = require('body-parser')
 var fileUpload = require('express-fileupload');
+var cookieParser = require('cookie-parser')
 var path = require('path')
-var webpackMiddleware = require("webpack-dev-middleware");
-var front_app_config = require('./front-app/webpack-config/webpack.dev.conf')
+var model = require("./config/model")
 var {debug} = require('./config')
+var {redis} = require("./config/model")
 
-var webpack = require('webpack')
-var compiler = webpack(front_app_config)
-app.set('view engine','ejs')
+var http = require('http').Server(app);
+var io = require('socket.io')(http);
+var moment = require('moment')
 
-console.log(process.env.aaa,'process.env.aaa')
+app.set('view engine', 'ejs')
+
+console.log(process.env.aaa, 'process.env.aaa')
 app.use(bodyParser({
-    urlencoded:false
+    urlencoded: false
 }))
 app.use(bodyParser.json())
+app.use(cookieParser())
 var user = require('./apps/user')
-app.use('/static',express.static(path.join(__dirname,'static')))
+app.use('/static', express.static(path.join(__dirname, 'static')))
 
-app.use(cors())
+
+
 app.use(fileUpload())
-app.use('/user',user)
-app.use('/post',require('./apps/post'))
-app.use('/comment',require('./apps/comment'))
-app.post('/upload',function (req, res) {
+app.use('/auth',require('./apps/auth'))
+app.use((req,res,next)=>{
+    if(!req.cookies.user_id){
+        res.redirect('/auth/login')
+    }else {
+        model.User.findById(req.cookies.user_id).then(item=>{
+            res.locals.user = item
+            next()
+        })
+
+    }
+})
+
+app.use('/user', user)
+app.use('/post', require('./apps/post'))
+app.use('/comment', require('./apps/comment'))
+app.post('/upload', function (req, res) {
     var file = req.files.file
-    var name = Date.parse(new Date())+'.'+file.name
-    var url = 'http://localhost:3000/static/uploads/'+name
-    var p = path.join(__dirname,'static','uploads',name)
-    file.mv(p, function(err) {
+    var name = Date.parse(new Date()) + '.' + file.name
+    var url = 'http://localhost:3000/static/uploads/' + name
+    var p = path.join(__dirname, 'static', 'uploads', name)
+    file.mv(p, function (err) {
         if (err)
             return res.status(500).send(err);
 
-        res.send({url:url});
+        res.send({url: url});
     });
 })
 
-app.get("/",(req,res)=>{
+app.get("/", (req, res) => {
     res.render('index')
 })
 
-function normalizeAssets(assets) {
-    return Array.isArray(assets) ? assets : [assets]
-}
+app.get('/message',(req,res)=>{
+    var from = req.query.from
+    var to = req.query.to
+    redis.lrange(from+'-'+to,0,-1,(err,list)=>{
 
-if(debug){
+
+
+        list = list.map(item=>{
+            return JSON.parse(item)
+        })
+
+        list = list.sort((a,b)=>{
+            return a.timeStamp > b.timeStamp
+        })
+        res.send(list)
+    })
+})
+
+
+if (debug) {
+
+    var webpackMiddleware = require("webpack-dev-middleware");
+
+    var front_app_config = require('./front-app/webpack-config/webpack.dev.conf')
+    var webpack = require('webpack')
+    var compiler = webpack(front_app_config)
+    // compiler.plugin('compilation', function (compilation) {
+    //     compilation.plugin('html-webpack-plugin-after-emit', function (data, cb) {
+    //         hotMiddleware.publish({ action: 'reload' })
+    //         cb()
+    //     })
+    // })
+    // var hotMiddleware = require('webpack-hot-middleware')(compiler, {
+    //     log: () => {}
+    // })
+    //
+    // app.use(hotMiddleware)
     app.set('json spaces', 4);
     app.use(webpackMiddleware(compiler, {serverSideRender: true}))
-    app.get('/chat',(req,res)=>{
-        const assetsByChunkName = res.locals.webpackStats.toJson().assetsByChunkName
+
+    app.get('/chat', (req, res) => {
+
+        var user = res.locals.user
         res.send(`
             <html>
-              <head>
+                <head>
                 <title>My App</title>
-                    
-              </head>
-              <body>
-                <div id="app"></div>
-                    ${
-            normalizeAssets(assetsByChunkName.chat)
-                .filter(path => path.endsWith('.js'))
-                .map(path => `<script src="${path}"></script>`)
-                .join('\n')
-            }
-              </body>
+                    <script src="/socket.io/socket.io.js"></script>
+                </head>
+                <body>
+                    <h3>${user.username}<a href="/auth/logout">退出</a></h3>
+                    <div id="app"></div>
+                </body>
+                <script>
+               
+                    var user = {
+                        name : "${user.username}",
+                        id:${user.id},
+                        logo:"${user.logo}"               
+                    }
+                </script>
+                <script src="chat.js"></script>
+              
             </html>
 	`)
     })
 
-    app.get('/admin',(req,res)=>{
-        const assetsByChunkName = res.locals.webpackStats.toJson().assetsByChunkName
+    app.get('/admin', (req, res) => {
+
         res.send(`
                <html>
                  <head>
@@ -84,25 +141,38 @@ if(debug){
                  </head>
                  <body>
                    <div id="app"></div>
-                       ${
-           normalizeAssets(assetsByChunkName.admin)
-               .filter(path => path.endsWith('.js'))
-               .map(path => `<script src="${path}"></script>`)
-               .join('\n')
-           }
+                   <script src="admin.js"></script>
+              
                  </body>
                </html>
         `)
     })
-}else {
-    app.get('/chat',(req,res)=>{
+} else {
+    app.get('/chat', (req, res) => {
         res.render('chat')
     })
-    app.get('/admin',(req,res)=>{
+    app.get('/admin', (req, res) => {
         res.render('admin')
     })
 }
 
 
+var clients = {}
+io.on('connection', (socket) => {
+    console.log('user connected')
+    socket.on('login',(name)=>{
+        clients[name] = socket
+    })
+    socket.on('send-message',(obj)=>{
+        redis.lpush(obj.from+'-'+obj.to,JSON.stringify(Object.assign({},obj,{type:'send',timeStamp:moment.now(),read:true})))
+        redis.lpush(obj.to+'-'+obj.from,JSON.stringify(Object.assign({},obj,{type:'receive',timeStamp:moment.now(),read:false})))
 
-app.listen(3000)
+        if(clients[obj.to]){
+            clients[obj.to].emit('receive-message',obj.text)
+        }
+    })
+})
+
+
+
+http.listen(3000)

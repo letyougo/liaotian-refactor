@@ -8,8 +8,5 @@ module.exports = {
     app_admin:{
 
     },
-    app_chat: {
-        id:1,
-        username:'ryan'
-    }
+
 }

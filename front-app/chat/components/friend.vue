@@ -1,31 +1,38 @@
 <template>
   <div class="friend">
-    <h3>好友列表</h3>
+
     <div v-for="f in friends" @click="openDialog(f)" class="friend-item">
-      <img :src="f.logo" width="100" height="100">{{f.username}}
+      <img :src="f.logo" width="50" height="50">{{f.username}}
     </div>
+
   </div>
 </template>
 
 <script>
   import {mapGetters,mapMutations,mapActions} from 'vuex'
 export default {
-  name: 'hello',
+  name: 'friend',
 
   computed:{
     ...mapGetters([
         'friends',
         'posts',
-        'self'
+        'self',
+
     ])
   },
 
   methods:{
     ...mapActions([
-        'fetch_friends'
+        'fetch_friends',
+
     ]),
+      ...mapMutations([
+          'set_you'
+      ]),
     openDialog(obj){
-        this.$router.push('/dialog?to='+obj.username)
+        this.set_you(obj.id)
+        this.$router.push('/dialog')
     }
   },
   mounted(){
