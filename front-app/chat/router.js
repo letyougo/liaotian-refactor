@@ -8,7 +8,7 @@ import friend from './components/friend.vue'
 import post from './components/post.vue'
 import self from './components/self.vue'
 import dialog from './components/dialog.vue'
-
+import shuoshuo from './components/shuoshuo.vue'
 
 Vue.use(Router)
 
@@ -39,6 +39,7 @@ export default new Router({
             path: '/dialog',
             name: '对话',
             component: dialog
-        }
+        },
+
     ]
 })

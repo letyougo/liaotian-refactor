@@ -88,8 +88,13 @@ if (debug) {
     var webpackMiddleware = require("webpack-dev-middleware");
 
     var front_app_config = require('./front-app/webpack-config/webpack.dev.conf')
+
+    var complier = require('webpack')(front_app_config)
+    app.use(webpackMiddleware())
     var webpack = require('webpack')
     var compiler = webpack(front_app_config)
+
+
     // compiler.plugin('compilation', function (compilation) {
     //     compilation.plugin('html-webpack-plugin-after-emit', function (data, cb) {
     //         hotMiddleware.publish({ action: 'reload' })

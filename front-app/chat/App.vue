@@ -4,6 +4,9 @@
         <router-link to="friend">好友</router-link>
         <router-link to="post">说说</router-link>
         <router-link to="self">我</router-link>
+
+
+
       <router-view></router-view>
     </div>
 </template>
@@ -15,7 +18,6 @@
     import {mapGetters,mapMutations,mapActions} from 'vuex'
 export default {
   name: 'app',
-
 
 }
 </script>

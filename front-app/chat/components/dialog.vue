@@ -4,14 +4,14 @@
         <div>
             <div v-for="item in message" >
                 <p v-if="item.type=='send'" :class="item.type">
-                    <img :src="me.logo" width="50" height="50"/>
-                    <span>{{item.from}}</span>
+                    <!--<span>{{item.from}}</span>-->
                     <span>{{item.text}}</span>
+                    <img :src="me.logo" width="30" height="30"/>
                 </p>
                 <p v-else :class="item.type">
-                    <span>{{item.from}}</span>
+                    <img :src="you.logo" width="30" height="30"/>
+                    <!--<span>{{item.from}}</span>-->
                     <span>{{item.text}}</span>
-                    <img :src="you.logo" width="50" height="50"/>
                 </p>
             </div>
         </div>
@@ -55,7 +55,8 @@
         mounted(){
             var that = this
             socket.on('receive-message',(text)=>{
-                that.send_message({to:that.me.name,text:that.text,from:this.you.username,type:'receive'})
+                console.log(text)
+                that.send_message({to:that.me.name,text:text,from:this.you.username,type:'receive'})
             })
 
             this.fetch_message({from:that.me.name,to:that.you.username})
@@ -70,5 +71,9 @@
     }
     .receive{
         text-align: left;
+    }
+    p * {
+        vertical-align: middle;
+        font-size: 14px;
     }
 </style>

@@ -4,5 +4,5 @@
 
 module.exports = {
     username:'root',
-    password:''
+    password:'surui123'
 }

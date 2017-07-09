@@ -28,6 +28,14 @@ router.get('/',function (req, res) {
     }
 })
 
+router.get('/search',function (req, res) {
+    model.connect.query(`
+        select * from users where username like '%${req.query.username}%'
+    `,{model:model.User})
+        .then((users)=>{
+            res.send(users)
+        })
+})
 
 router.patch('/:id',(req,res)=>{
     model
@@ -72,15 +80,26 @@ router.get('/:id/post',(req,res)=>{
 })
 
 router.get('/:id/post_detail',(req,res)=>{
-    connect.query(
-        'SELECT posts.id as id,posts.title as title,posts.content as content,comments.content as c_content,' +
-        ' comments.userId as c_u_id,stars.userId as s_u_id,posts.createdAt' +
-        ' FROM posts LEFT JOIN comments ON comments.postId = posts.id LEFT JOIN stars ON stars.postId = posts.id' +
-        ' WHERE posts.userId in (SELECT friendId FROM relations WHERE relations.userId=1)' +
-        ' OR posts.userId in  (SELECT relations.userId FROM relations WHERE relations.friendId=1)'
+    connect.query(`
+            SELECT
+          posts.id as id,
+          posts.title as titile,
+          posts.content as content,
+          posts.createdAt,
+          comments.content as c_content,
+          users.username as u_name,
+          users.logo as u_logo,
+          comments.userId as c_u_id,
+          stars.userId as s_u_id
+        FROM posts LEFT JOIN comments  ON comments.postId = posts.id LEFT JOIN stars ON stars.postId = posts.id
+          LEFT JOIN users ON posts.userId = users.id
+        WHERE posts.userId in (SELECT friendId FROM relations WHERE relations.userId=${req.params.id})
+        OR posts.userId in  (SELECT relations.userId FROM relations WHERE relations.friendId=${req.params.id})
+        `
         ,{model:model.Post}
-    ).then(list=>{
-        res.send(list)
+    ).then(post=>{
+
+        res.send(post)
     })
 })
 
@@ -125,6 +144,38 @@ router.get('/:id/friend',(req,res)=>{
     })
 })
 
+router.get('/:id/request',(req,res)=>{
+    connect.query(`
+    SELECT
+    requests.id,
+    requests.content,
+    users.username AS username,
+    users.logo AS logo,
+    requests.fromId,
+    requests.toId
+    FROM requests LEFT JOIN users ON requests.fromId=users.id WHERE toId = ${req.params.id}
+`,{model:model.Request}).then((receive)=>{
+
+
+        connect.query(`
+            SELECT
+                requests.id,
+                requests.content,
+                users.username AS username,
+                users.logo AS logo,
+                requests.fromId,
+                requests.toId
+            FROM requests LEFT JOIN users ON requests.toId=users.id WHERE fromId = ${req.params.id}
+            
+        `,{model:model.Request}).then((send)=>{
+            var obj = {}
+            obj.send = send
+            obj.receive = receive
+            res.send(obj)
+        })
+
+    })
+})
 
 
 router.post('/:id/friend',(req,res)=>{

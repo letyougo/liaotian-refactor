@@ -23,7 +23,12 @@ var store = new Vuex.Store({
         me: window.user,
 
         message:[],
-        you:0
+        you:0,
+        search_users:[],
+        requests:{
+            send:[],
+            receive:{}
+        }
     },
     getters: {
         friends: (state) => state.friends,
@@ -34,7 +39,9 @@ var store = new Vuex.Store({
             return state.friends.find((obj)=>{
                 return obj.id == state.you
             }) || {}
-        }
+        },
+        search_users:(state)=>state.search_users,
+        requests:(state)=>state.requests
     },
     mutations: {
         set_friends: (state, list) => state.friends = list,
@@ -49,9 +56,24 @@ var store = new Vuex.Store({
         set_me:(state,obj)=>{
             state.me = obj
             state.me.name = obj.username
+        },
+        set_search_users:(state,list)=>{
+            state.search_users =list
+        },
+        set_request:(state,obj)=>{
+            state.requests = obj
         }
     },
     actions: {
+        set_search_users({commit},query){
+
+            request
+                .get('/user/search')
+                .query({username:query})
+                .end((err,res)=>{
+                    commit('set_search_users',res.body)
+                })
+        },
         fetch_friends({commit}){
             request
                 .get(get_friend)
@@ -63,8 +85,51 @@ var store = new Vuex.Store({
             request
                 .get(get_post)
                 .end((err, res) => {
-                    console.log(res.body)
-                    commit('set_posts', res.body)
+                    var post = res.body
+                    var clean_post = []
+                    for(var i=0;i<post.length;i++){
+                        var p = clean_post.find((obj)=>{
+                            return obj.id == post[i].id
+                        })
+                        var item = post[i]
+                        var temp_obj = {}
+                        if(!p){
+                            temp_obj = {
+                                id:item.id,
+                                content:item.content,
+                                comments:[],
+                                stars:[],
+                                logo:item.u_logo,
+                                name:item.u_name,
+                                title:item.titile
+                            }
+                            clean_post.push(temp_obj)
+                        }else {
+                            temp_obj = p
+                        }
+
+                        if(item.c_u_id){
+                            var comment = temp_obj.comments.find((obj)=>{
+                                return obj.user_id == item.c_u_id
+                            })
+                            comment || temp_obj.comments.push({
+                                user_id:item.c_u_id,
+                                content:item.c_content
+                            })
+
+                        }
+                        if(item.s_u_id){
+                            var star = temp_obj.stars.find((obj)=>{
+                                return obj.user_id == item.s_u_id
+                            })
+                            star || temp_obj.stars.push({
+                                user_id: item.s_u_id
+                            })
+                        }
+                    }
+                    console.log(clean_post)
+
+                    commit('set_posts', clean_post)
                 })
         },
         fetch_message({commit},query){
@@ -78,13 +143,20 @@ var store = new Vuex.Store({
                 })
         },
         edit_me({commit},query){
-            console.log(query)
-            // request
-            //     .patch('/user/'+state.me.id)
-            //     .send(query)
-            //     .end((err, res) => {
-            //         // commit('set_me', res.body)
-            //     })
+
+            request
+                .patch('/user/'+state.me.id)
+                .send(query)
+                .end((err, res) => {
+                    commit('set_me', res.body)
+                })
+        },
+        fetch_requests({commit},id){
+            request
+                .get(`/user/${id}/request`)
+                .end((err,res)=>{
+                    commit('set_request',res.body)
+                })
         }
     }
 })

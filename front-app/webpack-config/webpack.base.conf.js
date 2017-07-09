@@ -10,8 +10,8 @@ console.log()
 console.log(__dirname,'hello dirname')
 module.exports = {
   entry: {
-    chat: path.join(path.dirname(__dirname),'chat','main.js'),
-    admin:path.join(path.dirname(__dirname),'admin','main.js')
+    chat: ["babel-polyfill",path.join(path.dirname(__dirname),'chat','main.js')],
+    admin:path.join(path.dirname(__dirname),'admin','main.js'),
   },
   output: {
     path: config.build.assetsRoot,
