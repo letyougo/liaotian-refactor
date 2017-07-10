@@ -84,29 +84,12 @@ app.get('/message',(req,res)=>{
 
 
 if (debug) {
-
+    app.set('json spaces', 4);
     var webpackMiddleware = require("webpack-dev-middleware");
 
     var front_app_config = require('./front-app/webpack-config/webpack.dev.conf')
 
-    var complier = require('webpack')(front_app_config)
-    app.use(webpackMiddleware())
-    var webpack = require('webpack')
-    var compiler = webpack(front_app_config)
-
-
-    // compiler.plugin('compilation', function (compilation) {
-    //     compilation.plugin('html-webpack-plugin-after-emit', function (data, cb) {
-    //         hotMiddleware.publish({ action: 'reload' })
-    //         cb()
-    //     })
-    // })
-    // var hotMiddleware = require('webpack-hot-middleware')(compiler, {
-    //     log: () => {}
-    // })
-    //
-    // app.use(hotMiddleware)
-    app.set('json spaces', 4);
+    var compiler = require('webpack')(front_app_config)
     app.use(webpackMiddleware(compiler, {serverSideRender: true}))
 
     app.get('/chat', (req, res) => {

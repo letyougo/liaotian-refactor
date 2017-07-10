@@ -4,7 +4,7 @@
 
 var config = require('./config')
 const Sequelize = require('sequelize');
-const sequelize = new Sequelize('dongnao_liaotian', config.username,config.password);
+const sequelize = new Sequelize('dongnao_liaotian', 'root','');
 
 var redis = require('redis').createClient();
 
