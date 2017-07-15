@@ -10,7 +10,7 @@ var fileUpload = require('express-fileupload');
 var cookieParser = require('cookie-parser')
 var path = require('path')
 var model = require("./config/model")
-var {debug} = require('./config')
+
 var {redis} = require("./config/model")
 
 var http = require('http').Server(app);
@@ -83,7 +83,7 @@ app.get('/message',(req,res)=>{
 })
 
 
-if (debug) {
+if (process.env.NODE_ENV == 'development') {
     app.set('json spaces', 4);
     var webpackMiddleware = require("webpack-dev-middleware");
 
@@ -99,6 +99,8 @@ if (debug) {
             <html>
                 <head>
                 <title>My App</title>
+                <meta name="viewport"
+                    content="width=360,user-scalable=no">
                     <script src="/socket.io/socket.io.js"></script>
                 </head>
                 <body>
@@ -145,21 +147,70 @@ if (debug) {
 }
 
 
-var clients = {}
+var clients = {};
 io.on('connection', (socket) => {
-    console.log('user connected')
+
+    console.log('user connected');
     socket.on('login',(name)=>{
+        console.log(name,'name')
         clients[name] = socket
     })
     socket.on('send-message',(obj)=>{
-        redis.lpush(obj.from+'-'+obj.to,JSON.stringify(Object.assign({},obj,{type:'send',timeStamp:moment.now(),read:true})))
-        redis.lpush(obj.to+'-'+obj.from,JSON.stringify(Object.assign({},obj,{type:'receive',timeStamp:moment.now(),read:false})))
+        console.log('send receive message to user',obj.to)
+        redis.lpush(obj.from+'-'+obj.to,JSON.stringify(Object.assign({},obj,{type:'send',timeStamp:moment.now(),read:true})));
+        redis.lpush(obj.to+'-'+obj.from,JSON.stringify(Object.assign({},obj,{type:'receive',timeStamp:moment.now(),read:false})));
 
         if(clients[obj.to]){
-            clients[obj.to].emit('receive-message',obj.text)
+
+            clients[obj.to].emit('receive-message',obj)
         }
     })
-})
+
+    socket.on('send-request',(obj)=>{
+        console.log('i am send reqeust')
+        model.Request.create({
+            fromId:obj.fromId,
+            toId:obj.toId,
+            content:obj.content,
+            read:0
+        }).then((item)=>{
+
+            if(clients[obj.to]){
+
+                clients[obj.to].emit('receive-request',obj)
+            }
+        })
+    })
+    socket.on('accept-request',(obj)=>{
+        model.Request.findById(obj.id).then((item)=>{
+            item.update({
+                read:1,
+                response:1
+            }).then((o)=>{
+                model.Relation.create({
+                    userId:obj.fromId,
+                    friendId:obj.toId
+                }).then((u)=>{
+                    if(clients[obj.to]){
+                        clients[obj.to].emit('receive-request',obj)
+                    }
+                })
+            })
+        })
+    })
+    socket.on("disagree-request",(obj)=>{
+        model.Request.findById(obj.id).then((item)=>{
+            item.update({
+                read:1,
+                response:0
+            }).then((o)=>{
+                if(clients[obj.to]){
+                    clients[obj.to].emit('receive-request',obj)
+                }
+            })
+        })
+    })
+});
 
 
 

@@ -41,6 +41,7 @@
         },
         methods:{
             sendMessage(){
+
                 var that = this
                 this.send_message({to:that.you.username,text:that.text,from:that.me.name,type:'send'})
                 socket.emit('send-message',{to:that.you.username,text:that.text,from:that.me.name,type:'send'})
@@ -54,9 +55,10 @@
         },
         mounted(){
             var that = this
-            socket.on('receive-message',(text)=>{
-                console.log(text)
-                that.send_message({to:that.me.name,text:text,from:this.you.username,type:'receive'})
+
+            socket.on('receive-message',(obj)=>{
+
+                that.send_message({to:that.me.name,text:obj.text,from:this.you.username,type:'receive'})
             })
 
             this.fetch_message({from:that.me.name,to:that.you.username})

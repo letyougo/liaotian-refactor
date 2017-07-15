@@ -2,7 +2,7 @@
  * Created by Administrator on 2017/6/11.
  */
 
-var config = require('./config')
+
 const Sequelize = require('sequelize');
 const sequelize = new Sequelize('dongnao_liaotian', 'root','');
 

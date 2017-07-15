@@ -50,6 +50,28 @@ var store = new Vuex.Store({
         send_message:(state,obj)=>{
             state.message.push(obj)
         },
+        add_unread(state,obj){
+            state.friends = state.friends.map((f)=>{
+                console.log(obj.username,)
+                if(f.username == obj.from){
+
+                    f.unread = f.unread +1
+                }
+
+                return f
+            })
+        },
+        clear_unread(state,obj){
+            state.friends = state.friends.map((f)=>{
+                console.log(obj.username,)
+                if(f.username == obj.from){
+
+                    f.unread = 0
+                }
+
+                return f
+            })
+        },
         set_you:(state,id)=>{
             state.you=id
         },
@@ -78,6 +100,10 @@ var store = new Vuex.Store({
             request
                 .get(get_friend)
                 .end((err, res) => {
+                    res.body = res.body.map((obj)=>{
+                        obj.unread = 0
+                        return obj
+                    })
                     commit('set_friends', res.body)
                 })
         },
